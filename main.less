@@ -1,25 +1,31 @@
 @cubeSize: 16px;
 @cubeMargin: 1px;
+@groupSize: (@cubeSize + @cubeMargin * 2) * 6;
+@groupMargin: 5px;
 
 body
 {
 	width: 100%;
 }
 
+body > div
+{
+	width: 98%;
+	padding: 1%;
+	position: relative;
+}
+
 div#picker
 {
-	height: 200px;
-	width: 100%;
-	position: relative;
-	padding: 10px;
+	height: @groupSize + @groupMargin * 2;
 }
 
 div#picker > div.group
 {
-	width: (@cubeSize + @cubeMargin * 2) * 6;
-	height: (@cubeSize + @cubeMargin * 2) * 6;
+	width: @groupSize;
+	height: @groupSize;
+	margin: @groupMargin;
 	float: left;
-	margin: 5px;
 }
 
 div#picker > div.group > div.chip
@@ -28,4 +34,20 @@ div#picker > div.group > div.chip
 	height: @cubeSize;
 	margin: @cubeMargin;
 	float: left;
+}
+
+div#ps1
+{
+	height: 42px;
+}
+
+div#ps1 > div#input
+{
+	width: 100%;
+	border: 5px solid gray;
+}
+
+div#ps1 > div#input:focus
+{
+	outline: none;
 }
