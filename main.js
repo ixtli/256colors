@@ -1,6 +1,10 @@
 /** constructor */
 function Picker ()
 {
+	this.requiredClasses = [
+		'js', 'rgba', 'boxshadow', 'contenteditable'
+	];
+	
 	this.pickerContainer = null;
 	this.shortcutsContainer = null;
 	this.inputElement = null;
@@ -21,6 +25,26 @@ function Picker ()
 
 Picker.prototype.init = function ()
 {
+	// Feature check!
+	var reqs = this.requiredClasses;
+	var len = reqs.length;
+	var html = $('html');
+	var fail = [];
+	for (var i = 0; i < len; i++)
+	{
+		if (!html.hasClass(reqs[i]))
+		{
+			console.warn('Feature not present: ' + reqs[i]);
+			fail.push(reqs[i]);
+		}
+	}
+	
+	if (fail.length)
+	{
+		this._failedFeatureDetection(fail);
+		return false;
+	}
+	
 	// Collect DOM elements necessary to construct the application
 	this.pickerContainer = $('div#picker');
 	this.inputElement = $('div#ps1 > div#input');
@@ -100,6 +124,16 @@ Picker.prototype._createPicker = function ()
 		
 		container.append(group);
 	}
+	
+};
+
+/** 
+ * 
+ * @private
+ * @param {Array.<string>} features that are absent
+ */
+Picker.prototype._failedFeatureDetection = function (failed)
+{
 	
 };
 
