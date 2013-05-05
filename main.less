@@ -1,0 +1,31 @@
+@cubeSize: 16px;
+@cubeMargin: 1px;
+
+body
+{
+	width: 100%;
+}
+
+div#picker
+{
+	height: 200px;
+	width: 100%;
+	position: relative;
+	padding: 10px;
+}
+
+div#picker > div.group
+{
+	width: (@cubeSize + @cubeMargin * 2) * 6;
+	height: (@cubeSize + @cubeMargin * 2) * 6;
+	float: left;
+	margin: 5px;
+}
+
+div#picker > div.group > div.chip
+{
+	width: @cubeSize;
+	height: @cubeSize;
+	margin: @cubeMargin;
+	float: left;
+}
