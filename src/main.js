@@ -15,6 +15,7 @@ function Picker ()
 	this.ps1ChangedHandler = null;
 	this.inputBlurHandler = null;
 	this.inputFocusHandler = null;
+	this.outputClickHandler = null;
 	
 	// Global control codes
 	this.escapeSuffix = 'm';
@@ -77,6 +78,7 @@ Picker.prototype.init = function ()
 	this.ps1ChangedHandler = $.proxy(this._ps1Changed, this);
 	this.inputBlurHandler = $.proxy(this._inputBlur, this);
 	this.inputFocusHandler = $.proxy(this._inputFocus, this);
+	this.outputClickHandler = $.proxy(this._outputClick, this);
 	
 	// Affix callbacks
 	this.inputElement.on('change', this.ps1ChangedHandler);
@@ -84,6 +86,7 @@ Picker.prototype.init = function ()
 	this.inputElement.on('blur', this.inputBlurHandler);
 	this.inputElement.on('focus', this.inputFocusHandler);
 	this.inputElement.on('mouseup', this.ps1ChangedHandler);
+	this.rawElement.parent().on('click', this.outputClickHandler);
 	
 	// Generate the UI
 	this._createPicker(this.bgPickerContainer, 'background');
@@ -97,15 +100,25 @@ Picker.prototype.init = function ()
 };
 
 /** @private */
+Picker.prototype._outputClick = function (evt)
+{
+	var selection = window.getSelection();
+	var range = document.createRange();
+	range.selectNodeContents(this.rawElement[0]);
+	selection.removeAllRanges();
+	selection.addRange(range);
+};
+
+/** @private */
 Picker.prototype._inputBlur = function (evt)
 {
-	
+	this._updateStyles();
 };
 
 /** @private */
 Picker.prototype._inputFocus = function (evt)
 {
-	
+	this._updateStyles();
 };
 
 /**
