@@ -7,7 +7,6 @@ function Picker ()
 	
 	this.fgPickerContainer = null;
 	this.bgPickerContainer = null;
-	this.shortcutsContainer = null;
 	this.inputElement = null;
 	this.rawElement = null;
 	
@@ -29,9 +28,12 @@ function Picker ()
 	this.currentSelection = null;
 	
 	this.shortcuts = {
-		'username': '\\u',
-		'hostname': '\\h',
-		'full cwd': '\\w'
+		'ps1 shortcuts' :
+		{
+			'username': '\\u',
+			'hostname': '\\h',
+			'full cwd': '\\w'
+		}
 	};
 	
 };
@@ -63,7 +65,6 @@ Picker.prototype.init = function ()
 	this.bgPickerContainer = $('div#bg.picker');
 	this.fgPickerContainer = $('div#fg.picker');
 	this.inputElement = $('div#builder > div#input');
-	this.shortcutsContainer = $('div#shortcuts');
 	this.rawElement = $('div#ps1 > div#raw');
 	
 	// We have the feature!
@@ -82,11 +83,15 @@ Picker.prototype.init = function ()
 	this.inputElement.on('keyup', this.ps1ChangedHandler);
 	this.inputElement.on('blur', this.inputBlurHandler);
 	this.inputElement.on('focus', this.inputFocusHandler);
+	this.inputElement.on('mouseup', this.ps1ChangedHandler);
 	
 	// Generate the UI
 	this._createPicker(this.bgPickerContainer, 'background');
 	this._createPicker(this.fgPickerContainer, 'foreground');
 	this._createShortcuts();
+	
+	// Update the UI
+	this._updateStyles();
 	
 	return true;
 };
@@ -103,7 +108,6 @@ Picker.prototype._inputFocus = function (evt)
 	
 };
 
-
 /**
 	* @private
 	* @param {int} red value [0 - 255]
@@ -113,6 +117,10 @@ Picker.prototype._inputFocus = function (evt)
 	*/
 Picker.prototype._rgbToVT100 = function (red, green, blue)
 {
+	
+	// vt100 code, generation. stolen from Todd Larason's perl script
+	// See: http://www.frexx.de/xterm-256-notes/
+	
 	if (red > 0) red = (red - 55) / 40;
 	if (green > 0) green = (green - 55) / 40;
 	if (blue > 0) blue = (blue - 55) / 40;
@@ -224,6 +232,7 @@ Picker.prototype._render = function (array, currentEscapes)
 Picker.prototype._ps1Changed = function (evt)
 {
 	this.rawElement.html(this._render(this.inputElement.contents(), ""));
+	this._updateStyles();
 };
 
 /** @private */
@@ -285,7 +294,6 @@ Picker.prototype._chipClick = function (evt)
 		document.execCommand('backColor', false, self.css('background-color'));
 	}
 	
-	this._updateStyles();
 	this._ps1Changed();
 	
 	return false;
@@ -300,17 +308,28 @@ Picker.prototype._clearStyle = function ()
 /** @private */
 Picker.prototype._createShortcuts = function ()
 {
-	var container = this.shortcutsContainer;
+	var before = $('div.picker').last();
 	var elt = null;
-	var scs = this.shortcuts;
-	for (cut in scs)
+	var container = null;
+	var scs = null;
+	for (var key in this.shortcuts)
 	{
-		elt = $('<button>')
-			.addClass('shortcut')
-			.text(cut)
-			.attr('code', scs[cut])
-			.on('click', this.shortcutClickHandler);
-		container.append(elt);
+		container = $('<div>').addClass('shortcuts');
+		container.append($('<h4>').html(key));
+		
+		scs = this.shortcuts[key];
+		
+		for (cut in scs)
+		{
+			elt = $('<button>')
+				.addClass('shortcut')
+				.text(cut)
+				.attr('code', scs[cut])
+				.on('click', this.shortcutClickHandler);
+			container.append(elt);
+		}
+		
+		before.after(container);
 	}
 };
 
@@ -324,13 +343,6 @@ Picker.prototype._colorChip = function (red, green, blue)
 {
 	var elt = $('<button>').addClass('chip');
 	
-	// vt100 code, stolen from Todd Larason's perl script
-	// See: http://www.frexx.de/xterm-256-notes/
-	var code = 16 + (red * 36) + (green * 6) + blue;
-	
-	elt.attr({'code' : code, 'red' : red, 'green' : green, 'blue' : blue});
-	
-	// Create the 32-bit rgb values from the list. This is also from the above
 	var color = this._hexColor(
 		red ? red * 40 + 55 : 0,
 		green ? green * 40 + 55 : 0,
@@ -350,7 +362,6 @@ Picker.prototype._colorChip = function (red, green, blue)
 Picker.prototype._createPicker = function (container, name)
 {
 	var group = $('<div>').attr('id', 'preview').addClass('group');
-	group.append($('<h5>').html(name));
 	
 	container.append(group);
 	
@@ -375,7 +386,52 @@ Picker.prototype._createPicker = function (container, name)
 /** @private */
 Picker.prototype._updateStyles = function ()
 {
+	var selection = document.getSelection();
+	var fgDisplay = $('div#fg > div#preview');
+	var bgDisplay = $('div#bg > div#preview');
 	
+	// Base case: no selection
+	if (!selection.anchorNode)
+	{
+		fgDisplay.removeAttr('style');
+		fgDisplay.addClass('no-select');
+		bgDisplay.removeAttr('style');
+		bgDisplay.addClass('no-select');
+		return;
+	}
+	
+	fgDisplay.removeClass('no-select');
+	bgDisplay.removeClass('no-select');
+	
+	var current = $(selection.anchorNode);
+	var bgColor = null;
+	var fgColor = null;
+	while (current.attr('id') != "input")
+	{
+		if (!bgColor && current.is('span'))
+		{
+			bgColor = current.css('background-color');
+		} else if (!fgColor && current.is('font')) {
+			fgColor = current.attr('color');
+		}
+		
+		current = current.parent();
+		
+	};
+	
+	// Default, if nothing is specified for either
+	if (!bgColor)
+	{
+		bgColor = this.inputElement.css('background-color');
+	}
+	
+	if (!fgColor)
+	{
+		fgColor = this.inputElement.css('color');
+	}
+	
+	fgDisplay.css('background-color', fgColor);
+	bgDisplay.css('background-color', bgColor);
 };
 
 /** 

@@ -3,24 +3,52 @@
 @groupSize: (@cubeSize + @cubeMargin * 2) * 6;
 @groupMargin: 0px;
 
+@topBGColor: rgb(240, 240, 240);
+
 body
 {
 	width: 100%;
 }
 
+body > *
+{
+	padding-left: 2%;
+}
+
+body > h1
+{
+	margin-bottom: 0;
+}
+
 body > div
 {
 	width: 96%;
-	padding-left: 2%;
 	padding-right: 2%;
 	position: relative;
 	
 	margin-top: 15px;
+	background-color: @topBGColor;
+}
+
+body > div > h4
+{
+	margin: 0;
+	font-size: 14px;
+	padding-top: 2px;
+	padding-bottom: 3px;
+	color: darken(@topBGColor, 20%);
+	
+	transition: all .05s linear;
+}
+
+body > div:hover > h4
+{
+	color: darken(@topBGColor, 50%);
 }
 
 div.picker
 {
-	height: @groupSize + @groupMargin * 2;
+	display: inline-block;
 }
 
 div.picker > div.group
@@ -31,9 +59,14 @@ div.picker > div.group
 	float: left;
 }
 
-div.picker > div.group.preview
+div.picker > div#preview.group
 {
 	
+}
+
+div.picker > div#preview.group.no-select
+{
+	background-color: darken(@topBGColor, 25%);
 }
 
 div.picker > div.group > button.chip
@@ -45,19 +78,30 @@ div.picker > div.group > button.chip
 	border: none;
 }
 
+div.shortcuts
+{
+	padding-bottom: 10px;
+}
+
 div#builder
 {
-	height: 36px;
+	height: auto;
+	padding-bottom: 10px;
 }
 
 div#builder > div#input
 {
 	width: 100%;
-	height: 22px;
-	border: 4px solid gray;
-	padding-top: 2px;
-	padding-bottom: 2px;
+	padding: 4px;
 	margin-left: -4px;
+	background-color: white;
+	color: black;
+}
+
+div#builder > div#input.dark
+{
+	background-color: black;
+	color: white;
 }
 
 div#builder > div#input:focus
@@ -84,28 +128,14 @@ div#rendered > div#content
 	font-size: 14px;
 }
 
-div#input > div.bg-color
-{
-	background-color: rgb(228, 228, 228);
-	width: 55px;
-	height: 100%;
-	float: left;
-}
-
-div#input > div.bg-color > div.chip
-{
-	width: 100%;
-	height: 100%;
-	float: left;
-}
-
 div#ps1
 {
-	
+	margin-bottom: 15px
 }
 
 div#ps1 > div#raw
 {
 	word-break: break-all;
+	min-height: 12px;
 }
 
