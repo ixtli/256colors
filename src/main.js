@@ -103,6 +103,23 @@ Picker.prototype._inputFocus = function (evt)
 	
 };
 
+
+/**
+	* @private
+	* @param {int} red value [0 - 255]
+	* @param {int} green value [0 - 255]
+	* @param {int} blue value [0 - 255]
+	* return {int} VT100 256 color term code
+	*/
+Picker.prototype._rgbToVT100 = function (red, green, blue)
+{
+	if (red > 0) red = (red - 55) / 40;
+	if (green > 0) green = (green - 55) / 40;
+	if (blue > 0) blue = (blue - 55) / 40;
+	
+	return num = 16 + (red * 36) + (green * 6) + blue;
+};
+
 /**
 	* @private
 	* @param {jQuery} the element to be translated
@@ -112,16 +129,11 @@ Picker.prototype._translateSpan = function (elt)
 {
 	var color = elt.css('background-color').split(',');
 	
-	// backwards compute the color code
-	var red = (parseInt(color[0].split('(')[1]));
-	var green = (parseInt(color[1]));
-	var blue = (parseInt(color[2].split(')')[0]));
-	
-	if (red > 0) red = (red - 55) / 40;
-	if (green > 0) green = (green - 55) / 40;
-	if (blue > 0) blue = (blue - 55) / 40;
-	
-	var num = 16 + (red * 36) + (green * 6) + blue;
+	var num = this._rgbToVT100(
+		parseInt(color[0].split('(')[1]),
+		parseInt(color[1]),
+		parseInt(color[2].split(')')[0])
+	);
 	
 	return this.bgControlPrefix + num + this.escapeSuffix;
 };
@@ -133,7 +145,15 @@ Picker.prototype._translateSpan = function (elt)
 	*/
 Picker.prototype._translateFont = function (elt)
 {
+	var color = elt.attr('color').split('#')[1];
 	
+	var num = this._rgbToVT100(
+		parseInt(color.slice(0, 2), 16),
+		parseInt(color.slice(2, 4), 16),
+		parseInt(color.slice(4, 6), 16)
+	);
+	
+	return this.fgControlPrefix + num + this.escapeSuffix;
 };
 
 Picker.prototype._translationFunctions = {
@@ -149,13 +169,13 @@ Picker.prototype._translationFunctions = {
 Picker.prototype._render = function (array, currentEscapes)
 {
 	// The thing to be returned
-	var escapeString = "";
+	var ret = "";
 	
 	var len = array.length;
 	var type = null;
 	var current = null;
 	var nodeName = null;
-	var children = null;
+	var contents = null;
 	var process = null;
 	var nodeData = null;
 	for (var i = 0; i < len; i++)
@@ -165,7 +185,7 @@ Picker.prototype._render = function (array, currentEscapes)
 		// If the node is text, easy out
 		if (current.nodeType == 3)
 		{
-			escapeString = escapeString + $(current).text();
+			ret += $(current).text();
 			continue;
 		}
 		
@@ -183,19 +203,19 @@ Picker.prototype._render = function (array, currentEscapes)
 		}
 		
 		// Append our escape chars
-		escapeString += process;
+		ret += process;
 		
 		// if the node has children, recurse on them!
-		children = current.children();
-		if (children.length)
+		contents = current.contents();
+		if (contents.length)
 		{
-			escapeString += this._render(children, currentEscapes + process);
+			ret += this._render(contents, currentEscapes + process);
 		}
 		
-		escapeString += current.text() + this.clearCode + currentEscapes;
+		ret += this.clearCode + currentEscapes;
 	}
 	
-	return escapeString;
+	return ret;
 };
 
 /** @private */
