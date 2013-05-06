@@ -61,6 +61,13 @@ Picker.prototype.init = function ()
 		return false;
 	}
 	
+	// Check data consistency
+	if (window.data.codeArray.length != 256)
+	{
+		console.error('data load invalid');
+		return false;
+	}
+	
 	// Collect DOM elements necessary to construct the application
 	this.bgPickerContainer = $('div#bg.picker');
 	this.fgPickerContainer = $('div#fg.picker');
@@ -88,6 +95,7 @@ Picker.prototype.init = function ()
 	this.rawElement.parent().on('click', this.outputClickHandler);
 	
 	// Generate the UI
+	this._generateColorTables();
 	this._createPicker(this.bgPickerContainer, 'background');
 	this._createPicker(this.fgPickerContainer, 'foreground');
 	this._createShortcuts();
@@ -96,6 +104,12 @@ Picker.prototype.init = function ()
 	this._updateStyles();
 	
 	return true;
+};
+
+/** @private */
+Picker.prototype._generateColorTables = function ()
+{
+	
 };
 
 /** @private */
@@ -133,6 +147,19 @@ Picker.prototype._rgbToVT100 = function (red, green, blue)
 	// vt100 code, generation. stolen from Todd Larason's perl script
 	// See: http://www.frexx.de/xterm-256-notes/
 	
+	// system colors are a special case as well (0-16)
+	if (!(red | green | blue))
+	{
+		return 0;
+	}
+	
+	// gray is a special case (232-255)
+	if (red == green && red == blue)
+	{
+		return red ? (red - 8) / 10 + 232 : 232;
+	}
+	
+	// otherwise, we're 256 color rgb space (16-231)
 	if (red > 0) red = (red - 55) / 40;
 	if (green > 0) green = (green - 55) / 40;
 	if (blue > 0) blue = (blue - 55) / 40;
@@ -351,13 +378,38 @@ Picker.prototype._colorChip = function (red, green, blue)
 {
 	var elt = $('<button>').addClass('chip');
 	
-	var color = this._hexColor(
-		red ? red * 40 + 55 : 0,
-		green ? green * 40 + 55 : 0,
-		blue ? blue * 40 + 55 : 0
-	);
+	var color = "rgb(" +
+		(red ? red * 40 + 55 : 0) + "," + 
+		(green ? green * 40 + 55 : 0) + "," + 
+		(blue ? blue * 40 + 55 : 0) + ")";
 	
-	elt.css('background-color', '#' + color);
+	elt.css('background-color', color);
+	
+	return elt;
+}
+
+/**
+	* @private
+	* @param {int} 3bit saturation
+	*/
+Picker.prototype._grayChip = function (sat)
+{
+	var elt = $('<button>').addClass('chip');
+	var level = sat * 10 + 8;
+	elt.css('background-color', 'rgb(' + level + ',' + level + ',' + level + ')');
+	
+	return elt;
+}
+
+/**
+	* @private
+	* @param {int} 3bit saturation
+	*/
+Picker.prototype._sysChip = function (sat)
+{
+	var elt = $('<button>').addClass('chip');
+	var level = sat * 10 + 8;
+	elt.css('background-color', 'rgb(' + level + ',' + level + ',' + level + ')');
 	
 	return elt;
 }
@@ -373,6 +425,7 @@ Picker.prototype._createPicker = function (container, name)
 	
 	container.append(group);
 	
+	// Create the 6x6x6 cube of 8bit colors
 	for (var green = 0; green < 6; green++)
 	{
 		group = $('<div>').addClass('group');
@@ -389,6 +442,14 @@ Picker.prototype._createPicker = function (container, name)
 		container.append(group);
 	}
 	
+	// Create the standard vt100 color table
+	group = $('<div>').addClass('group gray');
+	for (var gray = 0; gray < 24; gray++)
+	{
+		group.append(this._grayChip(gray).on('click', this.chipClickHandler));
+	}
+	container.append(group);
+	
 };
 
 /** @private */
@@ -398,8 +459,8 @@ Picker.prototype._updateStyles = function ()
 	var fgDisplay = $('div#fg > div#preview');
 	var bgDisplay = $('div#bg > div#preview');
 	
-	// Base case: no selection
-	if (!selection.anchorNode)
+	// Base case: no selection or selection in another element
+	if (!selection.anchorNode || !this.inputElement.is(':focus'))
 	{
 		fgDisplay.removeAttr('style');
 		fgDisplay.addClass('no-select');
