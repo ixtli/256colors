@@ -50,7 +50,6 @@ Picker.prototype.init = function ()
 	{
 		if (!html.hasClass(reqs[i]))
 		{
-			console.warn('Feature not present: ' + reqs[i]);
 			fail.push(reqs[i]);
 		}
 	}
@@ -454,7 +453,13 @@ Picker.prototype._updateStyles = function ()
  */
 Picker.prototype._failedFeatureDetection = function (failed)
 {
-	
+	$('body')
+		.empty()
+		.append($('<h1>').html('You need a new browser.'))
+		.append($('<a>').attr('href', 'http://browsehappy.com/')
+			.html('You can get one here!'))
+		.append($('<p>').html('specifically, your browser lacked the following'
+			+ ' features: ' + failed.join(' ')));
 };
 
 // Bootstrap when DOM is ready
