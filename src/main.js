@@ -158,7 +158,9 @@ Picker.prototype._translateFont = function (elt)
 
 Picker.prototype._translationFunctions = {
 	'span' : Picker.prototype._translateSpan,
-	'font' : Picker.prototype._translateFont
+	'font' : Picker.prototype._translateFont,
+	'br' : function () { return '\\n'; },
+	'div' : function () { return '\\n'; }
 };
 
 /**
