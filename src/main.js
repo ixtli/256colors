@@ -252,10 +252,6 @@ Picker.prototype._shortcutClick = function (evt)
 {
 	var code = $(evt.currentTarget).attr('code');
 	document.execCommand('insertText', false, code);
-	
-	var range = document.createRange();
-	var selection = window.getSelection();
-	selection.extend(selection.baseNode.parentNode, code.length);
 };
 
 /**
