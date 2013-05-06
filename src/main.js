@@ -17,11 +17,14 @@ function Picker ()
 	this.inputBlurHandler = null;
 	this.inputFocusHandler = null;
 	
-	this.escapeCharacter = '\\033';
-	
-	this.bgEscapePrefix = '[48;5;';
-	this.fgEscapePrefix = '[38;5;';
+	// Global control codes
 	this.escapeSuffix = 'm';
+	this.escapePrefix = '\\033[';
+	
+	// Composite control codes
+	this.bgControlPrefix = this.escapePrefix + '48;5;';
+	this.fgControlPrefix = this.escapePrefix + '38;5;';
+	this.clearCode = this.escapePrefix + '0' + this.escapeSuffix;
 	
 	this.currentSelection = null;
 	
@@ -30,6 +33,7 @@ function Picker ()
 		'hostname': '\\h',
 		'full cwd': '\\w'
 	};
+	
 };
 
 Picker.prototype.init = function ()
@@ -64,6 +68,7 @@ Picker.prototype.init = function ()
 	
 	// We have the feature!
 	this.inputElement.prop('contenteditable', true);
+	this.inputElement.prop('spellcheck', false);
 	
 	// Make proxies
 	this.chipClickHandler = $.proxy(this._chipClick, this);
@@ -73,6 +78,7 @@ Picker.prototype.init = function ()
 	this.inputFocusHandler = $.proxy(this._inputFocus, this);
 	
 	// Affix callbacks
+	this.inputElement.on('change', this.ps1ChangedHandler);
 	this.inputElement.on('keyup', this.ps1ChangedHandler);
 	this.inputElement.on('blur', this.inputBlurHandler);
 	this.inputElement.on('focus', this.inputFocusHandler);
@@ -94,84 +100,108 @@ Picker.prototype._inputBlur = function (evt)
 /** @private */
 Picker.prototype._inputFocus = function (evt)
 {
-	var self = $(evt.currentTarget);
-	var current = self.html();
-	if (!current)
-	{
-		this._clearStyle();
-	}
+	
 };
 
-/** @private */
-Picker.prototype._restoreSelection = function ()
+/**
+	* @private
+	* @param {jQuery} the element to be translated
+	* @return {string} the escape sequence
+	*/
+Picker.prototype._translateSpan = function (elt)
 {
-	this.inputElement.focus();
+	var color = elt.css('background-color').split(',');
 	
-	if (!this.currentSelection) return;
+	// backwards compute the color code
+	var red = (parseInt(color[0].split('(')[1]));
+	var green = (parseInt(color[1]));
+	var blue = (parseInt(color[2].split(')')[0]));
 	
-	this.inputElement.setSelectionRange(0, 5);
-	this.currentSelection = null;
+	if (red > 0) red = (red - 55) / 40;
+	if (green > 0) green = (green - 55) / 40;
+	if (blue > 0) blue = (blue - 55) / 40;
+	
+	var num = 16 + (red * 36) + (green * 6) + blue;
+	
+	return this.bgControlPrefix + num + this.escapeSuffix;
 };
 
-/** @private */
-Picker.prototype._render = function ()
+/**
+	* @private
+	* @param {jQuery} the element to be translated
+	* @return {string} the escape sequence
+	*/
+Picker.prototype._translateFont = function (elt)
 {
-	var elts = this.inputElement.children();
-	var len = elts.length;
 	
-	var current = null;
+};
+
+Picker.prototype._translationFunctions = {
+	'span' : Picker.prototype._translateSpan,
+	'font' : Picker.prototype._translateFont
+};
+
+/**
+	* @param {Array.<jQuery>} contents to be itterated upon
+	* @param {string} existing escape characters
+	* @private
+	*/
+Picker.prototype._render = function (array, currentEscapes)
+{
+	// The thing to be returned
 	var escapeString = "";
-	var bgColor = "";
+	
+	var len = array.length;
+	var type = null;
+	var current = null;
+	var nodeName = null;
+	var children = null;
+	var process = null;
+	var nodeData = null;
 	for (var i = 0; i < len; i++)
 	{
-		current = $(elts[i]);
-		escapeString = escapeString + current.attr('escape');
+		current = array[i];
+		
+		// If the node is text, easy out
+		if (current.nodeType == 3)
+		{
+			escapeString = escapeString + $(current).text();
+			continue;
+		}
+		
+		// Get the type of node for use later
+		nodeName = current.nodeName.toLowerCase();
+		
+		// Get the escape code this node defines
+		current = $(current);
+		if (this._translationFunctions[nodeName])
+		{
+			process = this._translationFunctions[nodeName].call(this, current);
+		} else {
+			console.warn("Don't know how to decode node type '" + nodeName + "'!");
+			process = "";
+		}
+		
+		// Append our escape chars
+		escapeString += process;
+		
+		// if the node has children, recurse on them!
+		children = current.children();
+		if (children.length)
+		{
+			escapeString += this._render(children, currentEscapes + process);
+		}
+		
+		escapeString += current.text() + this.clearCode + currentEscapes;
 	}
 	
-	// Put it, raw, for copying in the PS1 element
-	this.rawElement.html(escapeString);
+	return escapeString;
 };
 
 /** @private */
 Picker.prototype._ps1Changed = function (evt)
 {
-	var selection = document.getSelection();
-	var parent = $(selection.baseNode.parentElement);
-	
-	var rawElement = this.inputElement[0];
-	
-	// If the user is editing raw text, this is bad so we need to remove it
-	// and replace it with a span-wrapped text that can be easily read out
-	// when we want to create the PS1
-	// N.B.: some pretty esoteric crap happens here because microsoft hates
-	// everyone trying to make software for general purpose computers, so be
-	// very careful when editing.
-	if (selection.baseNode.parentElement === rawElement)
-	{
-		// Save the typed text, clear the element, then readd the text
-		var text = this.inputElement.text();
-		this.inputElement.empty().text(text);
-		
-		// Make a selection that encompases the entire div
-		var range = document.createRange();
-		range.selectNodeContents(rawElement);
-		var selection = window.getSelection();
-		selection.removeAllRanges();
-		selection.addRange(range);
-		// use the standard function to clear the style
-		this._clearStyle();
-		
-		// snap cursor to the end of contenteditable
-		// solution: http://stackoverflow.com/a/3866442
-		// collapse the range to the end point.
-		// false means collapse to end rather than the start
-		range.collapse(false);
-		selection = window.getSelection();
-		selection.removeAllRanges();
-		selection.addRange(range);
-	}
-	
-	this._render();
+	this.rawElement.html(this._render(this.inputElement.contents(), ""));
 };
 
 /** @private */
@@ -224,13 +254,17 @@ Picker.prototype._chipClick = function (evt)
 	evt.returnValue = false;
 	
 	var self = $(evt.currentTarget);
-	document.execCommand('backColor', false, self.css('background-color'));
+	var type = self.parent().parent().attr('id');
 	
-	// extra styles to the selection
-	var result = $(document.getSelection().focusNode.parentNode);
-	result.attr('code', self.attr('code'));
+	if (type == "fg")
+	{
+		document.execCommand('foreColor', false, self.css('background-color'));
+	} else {
+		document.execCommand('backColor', false, self.css('background-color'));
+	}
 	
 	this._updateStyles();
+	this._ps1Changed();
 	
 	return false;
 };
@@ -238,7 +272,7 @@ Picker.prototype._chipClick = function (evt)
 /** @private */
 Picker.prototype._clearStyle = function ()
 {
-	document.execCommand('foreColor', false, "#000000");
+	
 };
 
 /** @private */
