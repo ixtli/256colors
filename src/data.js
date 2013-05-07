@@ -93,11 +93,11 @@ window.data.reverseLookup = {
 
 window.data.shortcuts = {
 	
-	'style' :
+	'style fxns' :
 	{
-		'bold' : ['', 'set the selected text to bold'],
-		'italic' : ['', 'set selected text to italic'],
-		'clear' : ['', 'clear style from selected text']
+		'clear' : ['removeFormat', 'clear style from selected text'],
+		'bold' : ['bold', 'set the selected text to bold'],
+		'underline' : ['underline', 'set selected text to underline']
 	},
 	
 	'ps1 shortcuts' :

@@ -17,19 +17,25 @@ function Picker ()
 	this.inputBlurHandler = null;
 	this.inputFocusHandler = null;
 	this.outputClickHandler = null;
+	this.toggleClickHandler = null;
 	
 	// Global control codes
 	this.escapeSuffix = 'm';
-	this.escapePrefix = '\\[\\e[';
+	this.escapePrefix = '\\[\\033[';
 	
 	// Composite control codes
 	this.bgControlPrefix = this.escapePrefix + '48;5;';
 	this.fgControlPrefix = this.escapePrefix + '38;5;';
+	this.boldControlCode = this.escapePrefix + '1' + this.escapeSuffix;
+	this.ulControlCode = this.escapePrefix + '4' + this.escapeSuffix;
 	this.clearCode = this.escapePrefix + '0' + this.escapeSuffix;
 	this.controlSequenceSuffix = '\\]';
 	
-	this.currentSelection = null;
-	
+	// Interestingly, this is always listed as "italic", but it appears to
+	// do different things on different implementations!
+	// Terminal.app : bright without being bold
+	// iTerm2.app : inverts fg and bg
+	this.funControlPrefix = this.escapePrefix + '3;' + this.escapeSuffix;
 };
 
 Picker.prototype.init = function ()
@@ -79,6 +85,7 @@ Picker.prototype.init = function ()
 	this.inputFocusHandler = $.proxy(this._inputFocus, this);
 	this.outputClickHandler = $.proxy(this._outputClick, this);
 	this.shortcutMouseEnterHandler = $.proxy(this._shortcutMouseEnter, this);
+	this.toggleClickHandler = $.proxy(this._toggleClick, this);
 	
 	// Affix callbacks
 	this.inputElement.on('change', this.ps1ChangedHandler);
@@ -87,6 +94,7 @@ Picker.prototype.init = function ()
 	this.inputElement.on('focus', this.inputFocusHandler);
 	this.inputElement.on('mouseup', this.ps1ChangedHandler);
 	this.rawElement.parent().on('click', this.outputClickHandler);
+	this.inputElement.prev().on('click', this.toggleClickHandler);
 	
 	// Generate the UI
 	this._generateColorTables();
@@ -98,6 +106,12 @@ Picker.prototype.init = function ()
 	this._updateStyles();
 	
 	return true;
+};
+
+/** @private */
+Picker.prototype._toggleClick = function (evt)
+{
+	$(evt.currentTarget).parent().children().toggleClass('dark');
 };
 
 /** @private */
@@ -217,6 +231,8 @@ Picker.prototype._translateFont = function (elt)
 Picker.prototype._translationFunctions = {
 	'span' : Picker.prototype._translateSpan,
 	'font' : Picker.prototype._translateFont,
+	'b' : function () { return this.boldControlCode; },
+	'u' : function () { return this.ulControlCode; },
 	'br' : function () { return '\\n'; },
 	'div' : function () { return '\\n'; }
 };
@@ -289,7 +305,19 @@ Picker.prototype._ps1Changed = function (evt)
 Picker.prototype._shortcutClick = function (evt)
 {
 	var code = $(evt.currentTarget).attr('code');
-	document.execCommand('insertText', false, code);
+	
+	switch (code)
+	{
+		case 'underline':
+		case 'bold':
+		case 'removeFormat':
+		document.execCommand(code, false, null);
+		break;
+		
+		default:
+		document.execCommand('insertText', false, code);
+		break;
+	}
 };
 
 /**
@@ -343,12 +371,6 @@ Picker.prototype._chipClick = function (evt)
 	this._ps1Changed();
 	
 	return false;
-};
-
-/** @private */
-Picker.prototype._clearStyle = function ()
-{
-	
 };
 
 /** @private */
