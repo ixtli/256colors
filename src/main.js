@@ -19,23 +19,27 @@ function Picker ()
 	this.outputClickHandler = null;
 	this.toggleClickHandler = null;
 	
-	// Global control codes
+	// Global vt100 control codes
 	this.escapeSuffix = 'm';
-	this.escapePrefix = '\\[\\033[';
+	this.escapePrefix = '\\033[';
 	
-	// Composite control codes
+	// Composite vt100 control codes
 	this.bgControlPrefix = this.escapePrefix + '48;5;';
 	this.fgControlPrefix = this.escapePrefix + '38;5;';
 	this.boldControlCode = this.escapePrefix + '1' + this.escapeSuffix;
 	this.ulControlCode = this.escapePrefix + '4' + this.escapeSuffix;
 	this.clearCode = this.escapePrefix + '0' + this.escapeSuffix;
-	this.controlSequenceSuffix = '\\]';
+	this.lineBreakCharacter = '\\n';
+	
+	// BASH specific control codes
+	this.bashControlSequencePrefix = '\\[';
+	this.bashControlSequenceSuffix = '\\]';
 	
 	// Interestingly, this is always listed as "italic", but it appears to
 	// do different things on different implementations!
 	// Terminal.app : bright without being bold
 	// iTerm2.app : inverts fg and bg
-	this.funControlPrefix = this.escapePrefix + '3;' + this.escapeSuffix;
+	this.funControlPrefix = this.escapePrefix + '3' + this.escapeSuffix;
 };
 
 Picker.prototype.init = function ()
@@ -197,7 +201,7 @@ Picker.prototype._rgbToVT100 = function (red, green, blue)
 	* @param {jQuery} the element to be translated
 	* @return {string} the escape sequence
 	*/
-Picker.prototype._translateSpan = function (elt)
+Picker.prototype._translateBGColor = function (elt)
 {
 	var color = elt.css('background-color').split(',');
 	
@@ -215,7 +219,7 @@ Picker.prototype._translateSpan = function (elt)
 	* @param {jQuery} the element to be translated
 	* @return {string} the escape sequence
 	*/
-Picker.prototype._translateFont = function (elt)
+Picker.prototype._translateFGColor = function (elt)
 {
 	var color = elt.attr('color').split('#')[1];
 	
@@ -229,31 +233,33 @@ Picker.prototype._translateFont = function (elt)
 };
 
 Picker.prototype._translationFunctions = {
-	'span' : Picker.prototype._translateSpan,
-	'font' : Picker.prototype._translateFont,
-	'b' : function () { return this.boldControlCode; },
-	'u' : function () { return this.ulControlCode; },
-	'br' : function () { return '\\n'; },
-	'div' : function () { return '\\n'; }
+	'b' : function () { return [this.boldControlCode, true]; },
+	'u' : function () { return [this.ulControlCode, true]; },
+	'br' : function () { return [this.lineBreakCharacter, false]; },
+	'div' : function () { return [this.lineBreakCharacter, false]; }
 };
 
 /**
+	* Depth-first recursion of DOM subtree to render it as a bash-compatible
+	*		vt100 control sequence.
 	* @param {Array.<jQuery>} contents to be itterated upon
-	* @param {string} existing escape characters
+	* @param {Array.<string>} stack of 'living' control characters at present
 	* @private
 	*/
-Picker.prototype._render = function (array, currentEscapes)
+Picker.prototype._render = function (array, controlStack)
 {
-	// The thing to be returned
-	var ret = "";
+	if (!controlStack)
+	{
+		controlStack = [];
+	}
 	
+	var ret = "";
 	var len = array.length;
-	var type = null;
 	var current = null;
-	var nodeName = null;
 	var contents = null;
-	var process = null;
-	var nodeData = null;
+	var nodeName = null;
+	var nodeStyle = null;
+	var controlString = null;
 	for (var i = 0; i < len; i++)
 	{
 		current = array[i];
@@ -265,30 +271,71 @@ Picker.prototype._render = function (array, currentEscapes)
 			continue;
 		}
 		
-		// Get the type of node for use later
-		nodeName = current.nodeName.toLowerCase();
-		
-		// Get the escape code this node defines
+		// Another easy out: an empty node!
 		current = $(current);
+		contents = current.contents();
+		if (!contents.length)
+		{
+			continue;
+		}
+		
+		// We are now endevoring to create a control string
+		controlString = "";
+		
+		// Get the escape code this node defines, for instance <u> means underline
+		// while a <div> OR a <br> means a newline
+		nodeName = current[0].nodeName.toLowerCase();
 		if (this._translationFunctions[nodeName])
 		{
-			process = this._translationFunctions[nodeName].call(this, current);
-		} else {
-			console.warn("Don't know how to decode node type '" + nodeName + "'!");
-			process = "";
+			nodeStyle = this._translationFunctions[nodeName].call(this, current);
+			ret += nodeStyle[0];
+			if (nodeStyle[1])
+			{
+				// the node style is a control character
+				controlString += nodeStyle[0];
+			}
 		}
 		
-		// Append our escape chars
-		ret += process + this.controlSequenceSuffix;
-		
-		// if the node has children, recurse on them!
-		contents = current.contents();
-		if (contents.length)
+		// Now proceed to collect the node styles in other ways, stored in attrs
+		// or style="" tags;
+		// Any node could have a color settings, apparently
+		if (current.attr('color'))
 		{
-			ret += this._render(contents, currentEscapes + process);
+			controlString += this._translateFGColor(current);
 		}
 		
-		ret += this.clearCode + currentEscapes + this.controlSequenceSuffix;
+		// Account for background color
+		if (current.attr('style'))
+		{
+			controlString += this._translateBGColor(current);
+		}
+		
+		// It's possible to get here without having gotten any control characters
+		// for instance, if there's a bunch of newlines
+		if (controlString != "")
+		{
+			// Append our escape chars to the stack
+			ret += this.bashControlSequencePrefix;
+			ret += controlString;
+			ret += this.bashControlSequenceSuffix;
+			
+			// Push our escape chars
+			controlStack.push(controlString);
+		}
+		
+		// This is the depth first recursion part ;D
+		ret += this._render(contents, controlStack);
+		
+		// As per above, early out if there's nothing to undo
+		if (controlString == "") continue;
+		
+		// Remove our escape chars, because they've ended
+		controlStack.pop();
+	
+		// Clear the style we made
+		ret += this.bashControlSequenceSuffix
+		ret += this.clearCode + controlStack.join('');
+		ret += this.bashControlSequenceSuffix;
 	}
 	
 	return ret;
@@ -297,7 +344,7 @@ Picker.prototype._render = function (array, currentEscapes)
 /** @private */
 Picker.prototype._ps1Changed = function (evt)
 {
-	this.rawElement.html(this._render(this.inputElement.contents(), ""));
+	this.rawElement.html(this._render(this.inputElement.contents()));
 	this._updateStyles();
 };
 
