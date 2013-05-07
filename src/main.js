@@ -12,6 +12,7 @@ function Picker ()
 	
 	this.chipClickHandler = null;
 	this.shortcutClickHandler = null;
+	this.shortcutHoverHandler = null;
 	this.ps1ChangedHandler = null;
 	this.inputBlurHandler = null;
 	this.inputFocusHandler = null;
@@ -19,23 +20,15 @@ function Picker ()
 	
 	// Global control codes
 	this.escapeSuffix = 'm';
-	this.escapePrefix = '\\033[';
+	this.escapePrefix = '\\[\\e[';
 	
 	// Composite control codes
 	this.bgControlPrefix = this.escapePrefix + '48;5;';
 	this.fgControlPrefix = this.escapePrefix + '38;5;';
 	this.clearCode = this.escapePrefix + '0' + this.escapeSuffix;
+	this.controlSequenceSuffix = '\\]';
 	
 	this.currentSelection = null;
-	
-	this.shortcuts = {
-		'ps1 shortcuts' :
-		{
-			'username': '\\u',
-			'hostname': '\\h',
-			'full cwd': '\\w'
-		}
-	};
 	
 };
 
@@ -85,6 +78,7 @@ Picker.prototype.init = function ()
 	this.inputBlurHandler = $.proxy(this._inputBlur, this);
 	this.inputFocusHandler = $.proxy(this._inputFocus, this);
 	this.outputClickHandler = $.proxy(this._outputClick, this);
+	this.shortcutHoverHandler = $.proxy(this._shortcutHover, this);
 	
 	// Affix callbacks
 	this.inputElement.on('change', this.ps1ChangedHandler);
@@ -104,6 +98,12 @@ Picker.prototype.init = function ()
 	this._updateStyles();
 	
 	return true;
+};
+
+/** @private */
+Picker.prototype._shortcutHover = function (evt)
+{
+	
 };
 
 /** @private */
@@ -252,7 +252,7 @@ Picker.prototype._render = function (array, currentEscapes)
 		}
 		
 		// Append our escape chars
-		ret += process;
+		ret += process + this.controlSequenceSuffix;
 		
 		// if the node has children, recurse on them!
 		contents = current.contents();
@@ -261,7 +261,7 @@ Picker.prototype._render = function (array, currentEscapes)
 			ret += this._render(contents, currentEscapes + process);
 		}
 		
-		ret += this.clearCode + currentEscapes;
+		ret += this.clearCode + currentEscapes + this.controlSequenceSuffix;
 	}
 	
 	return ret;
@@ -347,20 +347,22 @@ Picker.prototype._createShortcuts = function ()
 	var elt = null;
 	var container = null;
 	var scs = null;
-	for (var key in this.shortcuts)
+	for (var key in window.data.shortcuts)
 	{
 		container = $('<div>').addClass('shortcuts');
 		container.append($('<h4>').html(key));
 		
-		scs = this.shortcuts[key];
+		scs = window.data.shortcuts[key];
 		
 		for (cut in scs)
 		{
 			elt = $('<button>')
 				.addClass('shortcut')
 				.text(cut)
-				.attr('code', scs[cut])
-				.on('click', this.shortcutClickHandler);
+				.attr('code', scs[cut][0])
+				.attr('hint', scs[cut][1])
+				.on('click', this.shortcutClickHandler)
+				.on('hover', this.shortcutHoverHandler)
 			container.append(elt);
 		}
 		

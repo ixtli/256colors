@@ -42,9 +42,10 @@ body > div
 	background-color: @topBGColor;
 }
 
-body :first-child
+body div:first-child
 {
 	margin-top: 0;
+	height: 7px;
 }
 
 body > div > h4
@@ -111,21 +112,32 @@ div.shortcuts
 
 div.shortcuts > button
 {
-	margin-right: 5px;
+	margin-right: 4px;
+	margin-bottom: 4px;
+	padding-left: 5px;
+	padding-right: 0;
 	float: left;
 	background-color: darken(@topBGColor, 60%);
 	color: lighten(@topBGColor, 5%);
+	width: 140px;
+	font-weight: 200;
+	text-shadow: 1px 1px 1px darken(@topBGColor, 70%);
+	text-align: left;
+	border: 2px solid darken(@topBGColor, 60%);
+	
+	transition: all .02s linear;
 }
 
 div.shortcuts > button:hover
 {
-	
+	box-shadow: 1px 1px 5px -1px darken(@topBGColor, 70%);
 }
 
 div.shortcuts > button:active
 {
 	color: darken(@topBGColor, 60%);
 	background-color: lighten(@topBGColor, 5%);
+	text-shadow: 1px 1px 1px lighten(@topBGColor, 2%);
 }
 
 div#builder

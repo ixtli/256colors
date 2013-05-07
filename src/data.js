@@ -90,3 +90,33 @@ window.data.reverseLookup = {
 	"87005f":89, "875fff":99, "875fd7":98, "875faf":97, "875f87":96,
 	"875f5f":95, "875f00":94
 };
+
+window.data.shortcuts = {
+	'ps1 shortcuts' :
+	{
+		'long date'			: ['\\d', 'the  date  in "Weekday Month Date" format'],
+		'custom date'		: ['\\D{format}', 'the format is passed to strftime(3)'],
+		'full hostname'	: ['\\H', 'the hostname'],
+		'job count'			: ['\\j', 'the number of jobs currently managed by the shell'],
+		'base dev. name': ['\\l', 'the basename of the shell\'s terminal device name'],
+		'newline'				: ['\\n', 'newline'],
+		'carriage return': ['\\r', 'carriage return'],
+		'shell name'		: ['\\s', 'the  name  of  the shell, the basename of $0 ' +
+			'(the portion following the final slash)'],
+		'24hr full time': ['\\t', 'the current time in 24-hour HH:MM:SS format'],
+		'12hr full time': ['\\T', 'the current time in 12-hour HH:MM:SS format'],
+		'12hr time'			: ['\\@', 'the current time in 12-hour am/pm format'],
+		'24hr time'			: ['\\A', 'the current time in 24-hour HH:MM format'],
+		'username'			: ['\\u', 'the username of the current user'],
+		'version'				: ['\\v', 'the version of bash (e.g., 2.00)'],
+		'long version'	: ['\\V', 'the release version of bash, v + patch num'],
+		'relative cwd'	: ['\\w', 'the current working directory, with $HOME ' +
+			'abbreviated with a tilde'],
+		'basename cwd'	: ['\\W', 'the basename of the current working directory, '+
+			'with $HOME abbreviated with a tilde'],
+		'command hist #': ['\\!', 'the history number of this command'],
+		'command number': ['\\#', 'the command number of this command'],
+		'cond. prompt'	: ['\\$', 'if the effective UID is 0, a #, otherwise a $'],
+		'backslash'			: ['\\\\', 'a backslash']
+	}
+};
