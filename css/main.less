@@ -55,13 +55,17 @@ body > div > h4
 	padding-top: 2px;
 	padding-bottom: 3px;
 	color: darken(@topBGColor, 30%);
-	
 	transition: all .05s linear;
 }
 
 body > div:hover > h4
 {
 	color: darken(@topBGColor, 50%);
+}
+
+body > div > h5
+{
+	float: left;
 }
 
 div.picker
@@ -110,7 +114,30 @@ div.shortcuts
 	
 }
 
-div.shortcuts > button
+div.shortcuts > h4,
+div.shortcuts > h5
+{
+	float: left;
+	width: auto;
+	margin: 0;
+}
+
+div.shortcuts > h5
+{
+	margin-top: 3px;
+	font-size: 12px;
+	margin-left: 9px;
+	color: darken(@topBGColor, 20%);
+}
+
+div.button-wrap
+{
+	float: left;
+	width: 100%;
+	height: auto;
+}
+
+div.button-wrap > button
 {
 	margin-right: 4px;
 	margin-bottom: 4px;
@@ -128,12 +155,12 @@ div.shortcuts > button
 	transition: all .02s linear;
 }
 
-div.shortcuts > button:hover
+div.button-wrap > button:hover
 {
 	box-shadow: 1px 1px 5px -1px darken(@topBGColor, 70%);
 }
 
-div.shortcuts > button:active
+div.button-wrap > button:active
 {
 	color: darken(@topBGColor, 60%);
 	background-color: lighten(@topBGColor, 5%);

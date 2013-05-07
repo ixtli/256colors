@@ -92,9 +92,17 @@ window.data.reverseLookup = {
 };
 
 window.data.shortcuts = {
+	
+	'style' :
+	{
+		'bold' : ['', 'set the selected text to bold'],
+		'italic' : ['', 'set selected text to italic'],
+		'clear' : ['', 'clear style from selected text']
+	},
+	
 	'ps1 shortcuts' :
 	{
-		'long date'			: ['\\d', 'the  date  in "Weekday Month Date" format'],
+		'long date'			: ['\\d', 'the date in "Weekday Month Date" format'],
 		'custom date'		: ['\\D{format}', 'the format is passed to strftime(3)'],
 		'full hostname'	: ['\\H', 'the hostname'],
 		'job count'			: ['\\j', 'the number of jobs currently managed by the shell'],

@@ -12,7 +12,7 @@ function Picker ()
 	
 	this.chipClickHandler = null;
 	this.shortcutClickHandler = null;
-	this.shortcutHoverHandler = null;
+	this.shortcutMouseEnterHandler = null;
 	this.ps1ChangedHandler = null;
 	this.inputBlurHandler = null;
 	this.inputFocusHandler = null;
@@ -78,7 +78,7 @@ Picker.prototype.init = function ()
 	this.inputBlurHandler = $.proxy(this._inputBlur, this);
 	this.inputFocusHandler = $.proxy(this._inputFocus, this);
 	this.outputClickHandler = $.proxy(this._outputClick, this);
-	this.shortcutHoverHandler = $.proxy(this._shortcutHover, this);
+	this.shortcutMouseEnterHandler = $.proxy(this._shortcutMouseEnter, this);
 	
 	// Affix callbacks
 	this.inputElement.on('change', this.ps1ChangedHandler);
@@ -101,9 +101,20 @@ Picker.prototype.init = function ()
 };
 
 /** @private */
-Picker.prototype._shortcutHover = function (evt)
+Picker.prototype._shortcutMouseEnter = function (evt)
 {
+	var self = $(evt.currentTarget);
+	var explain = self.parent().parent().children('h5').html(self.attr('hint'));
 	
+	if (!explain.filter(':visible').length)
+	{
+		explain.show().fadeIn(100);
+	}
+};
+
+Picker.prototype._shortcutMouseLeave = function (evt)
+{
+	$(this).children('h5').fadeOut(100);
 };
 
 /** @private */
@@ -347,13 +358,17 @@ Picker.prototype._createShortcuts = function ()
 	var elt = null;
 	var container = null;
 	var scs = null;
+	var wrap = null;
 	for (var key in window.data.shortcuts)
 	{
-		container = $('<div>').addClass('shortcuts');
-		container.append($('<h4>').html(key));
+		container = $('<div>')
+			.addClass('shortcuts')
+			.on('mouseleave', this._shortcutMouseLeave)
+			.append($('<h4>').html(key))
+			.append($('<h5>'));
 		
 		scs = window.data.shortcuts[key];
-		
+		wrap = $('<div>').addClass('button-wrap');
 		for (cut in scs)
 		{
 			elt = $('<button>')
@@ -362,11 +377,11 @@ Picker.prototype._createShortcuts = function ()
 				.attr('code', scs[cut][0])
 				.attr('hint', scs[cut][1])
 				.on('click', this.shortcutClickHandler)
-				.on('hover', this.shortcutHoverHandler)
-			container.append(elt);
+				.on('mouseenter', this.shortcutMouseEnterHandler)
+			wrap.append(elt);
 		}
 		
-		before.after(container);
+		before.after(container.append(wrap));
 	}
 };
 
