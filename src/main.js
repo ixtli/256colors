@@ -47,6 +47,9 @@ function Picker ()
 	// Terminal.app : bright without being bold
 	// iTerm2.app : inverts fg and bg
 	this.funControlPrefix = this.escapePrefix + '3' + this.escapeSuffix;
+	
+	// Misc stuff
+	this.githubAddr = "https://github.com/ixtli/256colors";
 };
 
 /*
