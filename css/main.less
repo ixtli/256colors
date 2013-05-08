@@ -226,13 +226,44 @@ div#builder > div#input:focus
 
 div#ps1
 {
-	padding-bottom: 25px;
+	
+}
+
+div#ps1 > h4
+{
+	float: left;
+}
+
+div#ps1 > input#format
+{
+	float: left;
+	margin-right: 3px;
+	margin-top: 4px;
+	margin-left: 10px;
+}
+
+div#ps1 > label
+{
+	float: left;
+	font-size: 14px;
+	font-weight: 200;
+	margin-top: 3px;
+	color: darken(@topBGColor, 30%)
 }
 
 div#ps1 > div#raw
 {
+	width: 96%;
 	word-break: break-all;
-	min-height: 12px;
+	min-height: 14px;
 	font-size: 12px;
+	float: left;
+	padding-top: 5px;
+	padding-bottom: 5px;
+	padding-left: 2%;
+	padding-right: 2%;
+	margin-bottom: 5px;
+	border: 1px solid darken(@topBGColor, 5%);
+	color: darken(@topBGColor, 65%);
 }
 

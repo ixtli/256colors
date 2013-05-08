@@ -1,15 +1,20 @@
 /** constructor */
 function Picker ()
 {
+	// features added to the html element by modernizr for easy compatibility
+	// and browser feature checking at init
 	this.requiredClasses = [
 		'js', 'rgba', 'boxshadow', 'contenteditable'
 	];
 	
+	// DOM elements that we ave references to for easy access later
 	this.fgPickerContainer = null;
 	this.bgPickerContainer = null;
+	this.PS1FormatCheck = null;
 	this.inputElement = null;
 	this.rawElement = null;
 	
+	// proxy functions
 	this.chipClickHandler = null;
 	this.shortcutClickHandler = null;
 	this.shortcutMouseEnterHandler = null;
@@ -18,6 +23,7 @@ function Picker ()
 	this.inputFocusHandler = null;
 	this.outputClickHandler = null;
 	this.toggleClickHandler = null;
+	this.ps1formatChangeHandler = null;
 	
 	// Global vt100 control codes
 	this.escapeSuffix = 'm';
@@ -32,8 +38,9 @@ function Picker ()
 	this.lineBreakCharacter = '\\n';
 	
 	// BASH specific control codes
-	this.bashControlSequencePrefix = '\\[';
-	this.bashControlSequenceSuffix = '\\]';
+	this.PS1Output = true;
+	this.PS1ControlSequencePrefix = '\\[';
+	this.PS1ControlSequenceSuffix = '\\]';
 	
 	// Interestingly, this is always listed as "italic", but it appears to
 	// do different things on different implementations!
@@ -42,6 +49,10 @@ function Picker ()
 	this.funControlPrefix = this.escapePrefix + '3' + this.escapeSuffix;
 };
 
+/*
+* construct the Picker objects
+* @return {boolean} whether or not construction was succesful
+*/
 Picker.prototype.init = function ()
 {
 	// Feature check!
@@ -76,10 +87,12 @@ Picker.prototype.init = function ()
 	this.fgPickerContainer = $('div#fg.picker');
 	this.inputElement = $('div#builder > div#input');
 	this.rawElement = $('div#ps1 > div#raw');
+	this.PS1FormatCheck = $('div#ps1 > input');
 	
 	// We have the feature!
 	this.inputElement.prop('contenteditable', true);
 	this.inputElement.prop('spellcheck', false);
+	this.PS1FormatCheck.prop('checked', this.PS1Output);
 	
 	// Make proxies
 	this.chipClickHandler = $.proxy(this._chipClick, this);
@@ -90,6 +103,7 @@ Picker.prototype.init = function ()
 	this.outputClickHandler = $.proxy(this._outputClick, this);
 	this.shortcutMouseEnterHandler = $.proxy(this._shortcutMouseEnter, this);
 	this.toggleClickHandler = $.proxy(this._toggleClick, this);
+	this.ps1formatChangeHandler = $.proxy(this._ps1FormatCheckChange, this);
 	
 	// Affix callbacks
 	this.inputElement.on('change', this.ps1ChangedHandler);
@@ -99,6 +113,7 @@ Picker.prototype.init = function ()
 	this.inputElement.on('mouseup', this.ps1ChangedHandler);
 	this.rawElement.parent().on('click', this.outputClickHandler);
 	this.inputElement.prev().on('click', this.toggleClickHandler);
+	this.PS1FormatCheck.on('change', this.ps1formatChangeHandler);
 	
 	// Generate the UI
 	this._generateColorTables();
@@ -111,6 +126,13 @@ Picker.prototype.init = function ()
 	
 	return true;
 };
+
+/** @private */
+Picker.prototype._ps1FormatCheckChange = function (evt)
+{
+	this.PS1Output = this.PS1FormatCheck.prop('checked');
+	this._ps1Changed();
+}
 
 /** @private */
 Picker.prototype._toggleClick = function (evt)
@@ -288,11 +310,12 @@ Picker.prototype._render = function (array, controlStack)
 		if (this._translationFunctions[nodeName])
 		{
 			nodeStyle = this._translationFunctions[nodeName].call(this, current);
-			ret += nodeStyle[0];
 			if (nodeStyle[1])
 			{
 				// the node style is a control character
 				controlString += nodeStyle[0];
+			} else {
+				ret += nodeStyle[0];
 			}
 		}
 		
@@ -315,9 +338,9 @@ Picker.prototype._render = function (array, controlStack)
 		if (controlString != "")
 		{
 			// Append our escape chars to the stack
-			ret += this.bashControlSequencePrefix;
+			if (this.PS1Output) ret += this.PS1ControlSequencePrefix;
 			ret += controlString;
-			ret += this.bashControlSequenceSuffix;
+			if (this.PS1Output) ret += this.PS1ControlSequenceSuffix;
 			
 			// Push our escape chars
 			controlStack.push(controlString);
@@ -333,9 +356,9 @@ Picker.prototype._render = function (array, controlStack)
 		controlStack.pop();
 	
 		// Clear the style we made
-		ret += this.bashControlSequenceSuffix
+		if (this.PS1Output) ret += this.PS1ControlSequencePrefix
 		ret += this.clearCode + controlStack.join('');
-		ret += this.bashControlSequenceSuffix;
+		if (this.PS1Output) ret += this.PS1ControlSequenceSuffix;
 	}
 	
 	return ret;
