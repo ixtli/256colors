@@ -1,3 +1,7 @@
+see it live
+===
+http://ixtli.github.io/256colors
+
 installation
 ===
 open index.html in any modern browser (chrome, saf, ff, IE10+)
